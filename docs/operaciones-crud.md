@@ -212,10 +212,12 @@ Estructura usada:
 trending:global
 ```
 
-Es un sorted set donde el miembro es `producto_id` y el score es la puntuacion
-de tendencia.
+Es un Sorted Set de Redis donde cada miembro es un `producto_id` y su valor
+asociado es el score de tendencia acumulado. El comando `ZADD` agrega o
+actualiza un miembro, y `ZREM` lo elimina. Ambas operaciones se verifican
+leyendo el score del producto con `ZSCORE` despues de ejecutarlas.
 
-### Operacion 1: crear o actualizar score global
+### Operacion 1: agregar o actualizar score global
 
 Funcion:
 
@@ -226,16 +228,24 @@ redis_upsert_global_score(producto_id, score)
 Comando:
 
 ```text
-ZADD trending:global score producto_id
+ZADD trending:global <score> <producto_id>
 ```
+
+Si el producto ya existe en el Sorted Set, `ZADD` reemplaza su score. Si no
+existe, lo agrega.
+
+Datos ingresados en vivo:
+
+- `producto_id`
+- `score`
 
 Verificacion:
 
 ```text
-ZSCORE trending:global producto_id
+ZSCORE trending:global <producto_id>
 ```
 
-Si Redis devuelve un score, la operacion queda verificada.
+Si Redis devuelve un valor numerico, la operacion queda verificada.
 
 ### Operacion 2: eliminar score global
 
@@ -248,16 +258,19 @@ redis_delete_global_score(producto_id)
 Comando:
 
 ```text
-ZREM trending:global producto_id
+ZREM trending:global <producto_id>
 ```
+
+Si el producto no existe en el Sorted Set, Redis no falla: simplemente no
+hace nada y devuelve 0.
 
 Verificacion:
 
 ```text
-ZSCORE trending:global producto_id
+ZSCORE trending:global <producto_id>
 ```
 
-Si Redis devuelve `null`, la eliminacion queda verificada.
+Si Redis devuelve `None`, el producto fue eliminado correctamente.
 
 ## Neo4j
 
